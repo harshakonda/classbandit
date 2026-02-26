@@ -51,7 +51,7 @@ function LogoBar({right,transparent}:{right?:React.ReactNode;transparent?:boolea
   );
 }
 
-function ClassHdr({pet,onAcc,onSignOut,startDate}:{pet:Pet|null;onAcc:()=>void;onSignOut:()=>void;startDate?:string}){
+function ClassHdr({pet,onAcc,onSignOut,onAccount,startDate}:{pet:Pet|null;onAcc:()=>void;onSignOut:()=>void;onAccount:()=>void;startDate?:string}){
   const [showMenu,setShowMenu]=useState(false);
   const lv=pet?.level||1,lp=pet?.level_points||0,tp=pet?.total_points||0;
   const pct=Math.min((lp/PPL)*100,100);
@@ -72,7 +72,7 @@ function ClassHdr({pet,onAcc,onSignOut,startDate}:{pet:Pet|null;onAcc:()=>void;o
         {/* Progress bar */}
         <div style={{flex:1,maxWidth:520}}>
           <div style={{width:"100%",height:14,borderRadius:7,backgroundColor:"#E5E7EB",overflow:"hidden"}}><div style={{width:`${pct}%`,height:"100%",borderRadius:7,background:"linear-gradient(90deg,#34D399,#06B6D4)",transition:"width .7s"}}/></div>
-          <div style={{textAlign:"center",marginTop:2}}><span style={{fontSize:10,color:"#999",fontWeight:500}}>{lp}/{PPL} points</span></div>
+          <div style={{textAlign:"center",marginTop:2}}><span style={{fontSize:13,color:"#666",fontWeight:700}}>{lp}/{PPL} points</span></div>
         </div>
         {/* Treasure chest */}
         <div style={{display:"flex",flexDirection:"column",alignItems:"center",flexShrink:0,marginLeft:6,zIndex:2}}>
@@ -97,6 +97,7 @@ function ClassHdr({pet,onAcc,onSignOut,startDate}:{pet:Pet|null;onAcc:()=>void;o
         </button>
         {showMenu&&<div style={{position:"absolute",top:42,right:0,backgroundColor:"#fff",borderRadius:10,boxShadow:"0 4px 20px rgba(0,0,0,.15)",minWidth:160,zIndex:100,overflow:"hidden"}}>
           <button onClick={()=>{setShowMenu(false);onAcc();}} style={{display:"block",width:"100%",padding:"12px 16px",fontSize:13,fontWeight:500,color:"#333",background:"none",border:"none",borderBottom:"1px solid #F0F0F0",cursor:"pointer",textAlign:"left"}}>My Classes</button>
+          <button onClick={()=>{setShowMenu(false);onAccount();}} style={{display:"block",width:"100%",padding:"12px 16px",fontSize:13,fontWeight:500,color:"#333",background:"none",border:"none",borderBottom:"1px solid #F0F0F0",cursor:"pointer",textAlign:"left"}}>My Account</button>
           <button onClick={()=>{setShowMenu(false);onSignOut();}} style={{display:"block",width:"100%",padding:"12px 16px",fontSize:13,fontWeight:500,color:"#EF4444",background:"none",border:"none",cursor:"pointer",textAlign:"left"}}>Sign Out</button>
         </div>}
       </div>
@@ -256,7 +257,9 @@ function ReflectP({onStart}:{onStart:(topic:ReflectTopic)=>void}){
 }
 
 function RefFull({cat,onDone,onPoint}:{cat:ReflectTopic;onDone:()=>void;onPoint:()=>void}){
-  const [step,setStep]=useState(0);const [sel,setSel]=useState<string|null>(null);
+  const [step,setStep]=useState(0);const [sel,setSel]=useState<Set<string>>(new Set());
+
+  const toggleEmo=(label:string)=>{setSel(prev=>{const next=new Set(prev);if(next.has(label))next.delete(label);else next.add(label);return next;});};
 
   // Step 1: Follow-up question + Complete button (no emotions)
   if(step===1)return(
@@ -267,20 +270,21 @@ function RefFull({cat,onDone,onPoint}:{cat:ReflectTopic;onDone:()=>void;onPoint:
     </div>
   );
 
-  // Step 0: Prompt + emotions + Continue
+  // Step 0: Prompt + emotions (multi-select) + Continue
+  const hasSel=sel.size>0;
   return(
     <div className="fi" style={{flex:1,display:"flex",flexDirection:"column",alignItems:"center",justifyContent:"center",textAlign:"center",padding:32,zIndex:15}}>
       <p style={{fontSize:14,color:"#B8860B",fontWeight:500,marginBottom:6}}>{cat.title}</p>
       <h2 style={{fontSize:26,fontWeight:700,maxWidth:560,lineHeight:1.35,marginBottom:28}}>{cat.prompt}</h2>
       <div style={{display:"flex",gap:16,marginBottom:28}}>
-        {EMOTIONS_UI.map(e=>(
-          <button key={e.label} onClick={()=>setSel(e.label)} style={{display:"flex",flexDirection:"column",alignItems:"center",gap:6,cursor:"pointer",background:"none",border:"none"}}>
-            <div style={{width:72,height:80,borderRadius:12,backgroundColor:sel===e.label?e.color:"#E5E7EB",display:"flex",alignItems:"center",justifyContent:"center",fontSize:32,border:sel===e.label?`3px solid ${e.color}`:"3px solid transparent",opacity:sel&&sel!==e.label?.5:1}}>{e.emoji}</div>
-            <span style={{fontSize:12,fontWeight:sel===e.label?700:500,color:sel===e.label?e.color:"#666"}}>{e.label}</span>
+        {EMOTIONS_UI.map(e=>{const active=sel.has(e.label);return(
+          <button key={e.label} onClick={()=>toggleEmo(e.label)} style={{display:"flex",flexDirection:"column",alignItems:"center",gap:6,cursor:"pointer",background:"none",border:"none"}}>
+            <div style={{width:72,height:80,borderRadius:12,backgroundColor:active?e.color:"#E5E7EB",display:"flex",alignItems:"center",justifyContent:"center",fontSize:32,border:active?`3px solid ${e.color}`:"3px solid transparent",opacity:hasSel&&!active?.5:1}}>{e.emoji}</div>
+            <span style={{fontSize:12,fontWeight:active?700:500,color:active?e.color:"#666"}}>{e.label}</span>
           </button>
-        ))}
+        );})}
       </div>
-      <button onClick={()=>{if(sel)setStep(1);}} style={{padding:"14px 36px",borderRadius:10,backgroundColor:sel?"#FACC15":"#D1D5DB",color:sel?"#1a1a1a":"#fff",fontSize:14,fontWeight:600,border:"none",cursor:sel?"pointer":"not-allowed"}}>{`Continue \u2192`}</button>
+      <button onClick={()=>{if(hasSel)setStep(1);}} style={{padding:"14px 36px",borderRadius:10,backgroundColor:hasSel?"#FACC15":"#D1D5DB",color:hasSel?"#1a1a1a":"#fff",fontSize:14,fontWeight:600,border:"none",cursor:hasSel?"pointer":"not-allowed"}}>{`Continue \u2192`}</button>
     </div>
   );
 }
@@ -384,7 +388,9 @@ export default function App(){
   const [pop,setPop]=useState(false);
   const [toast,setToast]=useState<{icon:string;title:string;sub:string}|null>(null);
   const toastTimer=useRef<ReturnType<typeof setTimeout>|null>(null);
-  const showToast=(t:{icon:string;title:string;sub:string})=>{if(toastTimer.current)clearTimeout(toastTimer.current);setToast(t);setPop(true);toastTimer.current=setTimeout(()=>{setPop(false);setToast(null);toastTimer.current=null;},10000);};
+  const pointSound=useRef<HTMLAudioElement|null>(null);
+  useEffect(()=>{pointSound.current=new Audio("/sounds/point-added.mp3");},[]);
+  const showToast=(t:{icon:string;title:string;sub:string})=>{if(toastTimer.current)clearTimeout(toastTimer.current);setToast(t);setPop(true);try{if(pointSound.current){pointSound.current.currentTime=0;pointSound.current.play();}}catch{}toastTimer.current=setTimeout(()=>{setPop(false);setToast(null);toastTimer.current=null;},10000);};
   const [vw,setVw]=useState<"teacher"|"student">("teacher");
   const [rCat,setRCat]=useState<ReflectTopic|null>(null);
   const [ts,setTs]=useState(0);
@@ -450,12 +456,19 @@ export default function App(){
     window.addEventListener('unhandledrejection',handleUnhandledRejection);
 
     const cfg=isSupabaseConfigured();setUseSB(cfg);
+    let initDone=false;
     if(cfg){
       // Set up auth state listener FIRST
       const{data:{subscription}}=supabase.auth.onAuthStateChange(async(event,sess)=>{
+        // After initial load, only update session — never navigate
+        if(initDone){
+          if(sess?.user)setSession(sess);
+          else if(event==="SIGNED_OUT"){setSession(null);setPage("landing");setLoading(false);}
+          return;
+        }
         if(event==="SIGNED_IN"&&sess?.user){
           if(window.location.hash)window.history.replaceState(null,"",window.location.pathname);
-          setSession(sess);setLoading(false);
+          setSession(sess);setLoading(false);initDone=true;
           try{
             const u=await db.getUser(sess.user.id);
             if(u?.onboarding_complete){await loadCls(sess.user.id);setPage("classes");}
@@ -463,7 +476,7 @@ export default function App(){
           }catch(e:any){console.warn("Auth change error:",e);setPage("classes");}
         }else if(event==="SIGNED_OUT"){setSession(null);setPage("landing");setLoading(false);}
         else if(event==="INITIAL_SESSION"){
-          // This fires once on page load with the current session
+          initDone=true;
           if(sess?.user){
             setSession(sess);
             if(window.location.hash)window.history.replaceState(null,"",window.location.pathname);
@@ -532,14 +545,16 @@ export default function App(){
   const addPt=async(gid:string)=>{
     if(!aCls)return;
     const careMap:{[k:string]:string}={feed:"last_fed_at",water:"last_watered_at",clean:"last_cleaned_at"};
-    if(useSB&&session){try{const isG=goals.some(g=>g.id===gid);const up=await db.addPoints(aCls.id,isG?gid:null,isG?"goal":gid==="general"?"general":gid,1);if(careMap[gid]){(up as any)[careMap[gid]]=new Date().toISOString();}if(!up.equipped_accessory&&equipped)up.equipped_accessory=equipped;setPet(up);}catch(e:any){setErr(e.message);}}
-    else{setPet(p=>{if(!p)return p;let lp=p.level_points+1,lv=p.level;if(lp>=PPL){lv++;lp=0;}const updates:any={...p,total_points:p.total_points+1,level:lv,level_points:lp};if(careMap[gid])updates[careMap[gid]]=new Date().toISOString();return updates;});}
+    // Always update local state first for instant feedback
+    setPet(p=>{if(!p)return p;let lp=p.level_points+1,lv=p.level;if(lp>=PPL){lv++;lp=0;}const updates:any={...p,total_points:p.total_points+1,level:lv,level_points:lp};if(careMap[gid])updates[careMap[gid]]=new Date().toISOString();return updates;});
     setDc(p=>({...p,[gid]:(p[gid]||0)+1}));
     // Toast banner
-    const careLabels:{[k:string]:{icon:string;title:string}}={feed:{icon:"/icons/care-feed.svg",title:`${pet?.name||"Bandit"} has been fed!`},water:{icon:"/icons/care-water.svg",title:`${pet?.name||"Bandit"} has been watered!`},clean:{icon:"/icons/care-clean.svg",title:`${pet?.name||"Bandit"}'s cage is clean!`}};
+    const careLabels:{[k:string]:{icon:string;title:string}}={feed:{icon:"/icons/toast-feed.svg",title:`${pet?.name||"Bandit"} has been fed!`},water:{icon:"/icons/toast-water.svg",title:`${pet?.name||"Bandit"} has been watered!`},clean:{icon:"/icons/toast-clean.svg",title:`${pet?.name||"Bandit"}'s cage is clean!`}};
     const care=careLabels[gid];
     if(care){showToast({icon:care.icon,title:care.title,sub:"+1 Point"});}
-    else{const gObj=goals.find(g=>g.id===gid);showToast({icon:"/icons/goals.png",title:gObj?`+1 Point for ${gObj.title}`:"+1 Point for General",sub:"+1 Point"});}
+    else{const gObj=goals.find(g=>g.id===gid);showToast({icon:"/icons/goals.png",title:gObj?gObj.title:"General Point",sub:"+1 Point"});}
+    // Sync to DB in background
+    if(useSB&&session){try{const isG=goals.some(g=>g.id===gid);const up=await db.addPoints(aCls.id,isG?gid:null,isG?"goal":gid==="general"?"general":gid,1);if(careMap[gid]){(up as any)[careMap[gid]]=new Date().toISOString();}if(!up.equipped_accessory&&equipped)up.equipped_accessory=equipped;setPet(up);}catch(e:any){console.error("addPt DB error:",e);}}
   };
 
   const tutN=()=>{ts>=TUTORIAL_STEPS.length-1?setPage("classroom"):setTs(s=>s+1);};
@@ -902,7 +917,7 @@ export default function App(){
   /* ===== PET INTRO (Figma D25) ===== */
   if(page==="petIntro")return(<>{savingEl}
     <div style={{minHeight:"100vh",display:"flex",flexDirection:"column"}}><CageBg/>
-      <ClassHdr pet={null} onAcc={()=>setPage("classes")} onSignOut={signOut} startDate={aCls?.start_date||undefined}/>
+      <ClassHdr pet={null} onAcc={()=>setPage("classes")} onAccount={openAccount} onSignOut={signOut} startDate={aCls?.start_date||undefined}/>
       <div style={{display:"flex",flex:1,position:"relative",zIndex:1}}>
         <Nav tab="" onTab={()=>{}} hl={null} disabled/>
         <div style={{flex:1,display:"flex",alignItems:"center",justifyContent:"center",padding:32}}>
@@ -939,7 +954,7 @@ export default function App(){
   /* ===== PET SELECTION ===== */
   if(page==="petSelect")return(<>{savingEl}
     <div style={{minHeight:"100vh",display:"flex",flexDirection:"column"}}><CageBg/>
-      <ClassHdr pet={null} onAcc={()=>setPage("classes")} onSignOut={signOut} startDate={aCls?.start_date||undefined}/>
+      <ClassHdr pet={null} onAcc={()=>setPage("classes")} onAccount={openAccount} onSignOut={signOut} startDate={aCls?.start_date||undefined}/>
       <div style={{display:"flex",flex:1,position:"relative",zIndex:1}}>
         <Nav tab="" onTab={()=>{}} hl={null} disabled/>
         <div style={{flex:1,display:"flex",alignItems:"center",justifyContent:"center"}}>
@@ -963,7 +978,7 @@ export default function App(){
   /* ===== PET NAMING ===== */
   if(page==="petName")return(<>{savingEl}
     <div style={{minHeight:"100vh",display:"flex",flexDirection:"column"}}><CageBg/>
-      <ClassHdr pet={null} onAcc={()=>setPage("classes")} onSignOut={signOut} startDate={aCls?.start_date||undefined}/>
+      <ClassHdr pet={null} onAcc={()=>setPage("classes")} onAccount={openAccount} onSignOut={signOut} startDate={aCls?.start_date||undefined}/>
       <div style={{display:"flex",flex:1,position:"relative",zIndex:1}}>
         <Nav tab="" onTab={()=>{}} hl={null} disabled/>
         <div style={{flex:1,display:"flex",alignItems:"center",justifyContent:"center"}}>
@@ -1083,7 +1098,9 @@ export default function App(){
         <div style={{width:200,padding:"24px 14px",borderRight:"1px solid #F0F0F0",backgroundColor:"#fff",minHeight:"calc(100vh - 68px)"}}>
           <div onClick={openAccount} style={{padding:"8px 10px",fontSize:12,color:"#555",cursor:"pointer",borderRadius:5,marginBottom:2}}>My Account</div>
           <div onClick={()=>setPage("classes")} style={{padding:"8px 10px",fontSize:12,color:"#555",cursor:"pointer",borderRadius:5,marginBottom:2}}>My Classes</div>
-          <div style={{padding:"8px 10px",fontSize:12,fontWeight:600,color:"#B8860B",backgroundColor:"#FEF9C3",borderLeft:"3px solid #FACC15",borderRadius:5}}>{isNew?"New Class":"Class Settings"}</div>
+          <div style={{paddingLeft:16,marginBottom:2}}>
+            <div style={{padding:"8px 10px",fontSize:12,fontWeight:600,color:"#B8860B",backgroundColor:"#FEF9C3",borderLeft:"3px solid #FACC15",borderRadius:5}}>{isNew?"New Class":"Class Settings"}</div>
+          </div>
         </div>
         <div style={{flex:1,padding:28}}>
           <div style={{borderRadius:14,padding:28,backgroundColor:"#fff",border:"1px solid #E5E7EB"}}>
@@ -1111,7 +1128,7 @@ export default function App(){
               </div>
               <div style={{display:"flex",flexDirection:"column",alignItems:"center"}}>
                 <div style={{borderRadius:14,border:"2px solid #D1D5DB",overflow:"hidden",maxWidth:400}}>
-                  <img src="/images/classroom-figma.png" alt="Class View Preview" style={{width:"100%",height:"auto",objectFit:"contain",display:"block"}}/>
+                  <img src="/images/class-settings-preview.svg" alt="Class View Preview" style={{width:"100%",height:"auto",objectFit:"contain",display:"block"}}/>
                 </div>
                 {!isNew&&<button onClick={()=>{if(useSB&&aCls)loadCD(aCls).then(()=>setPage("classroom"));else setPage("classroom");}} style={{marginTop:14,padding:"10px 24px",borderRadius:8,backgroundColor:"#FACC15",color:"#1a1a1a",border:"none",fontSize:13,fontWeight:600,cursor:"pointer"}}>{`Go to class view \u2192`}</button>}
               </div>
@@ -1137,7 +1154,7 @@ export default function App(){
     const petMoodSrc=equippedReward?.petImages?(equippedReward.petImages as any)[baseMood]||equippedReward.petImages.happyOne:null;
     return(
       <div style={{minHeight:"100vh",display:"flex",flexDirection:"column"}}><CageBg/>{savingEl}
-        <ClassHdr pet={pet} onAcc={()=>setPage("classes")} onSignOut={signOut} startDate={aCls?.start_date||undefined}/>
+        <ClassHdr pet={pet} onAcc={()=>setPage("classes")} onAccount={openAccount} onSignOut={signOut} startDate={aCls?.start_date||undefined}/>
         <div style={{display:"flex",flex:1,position:"relative",zIndex:1}}>
           {!isTut&&<Nav tab={tab} onTab={t=>{if(tab===t&&po){setPo(false);}else{setTab(t);setPo(true);}setRCat(null);}} hl={hlTab}/>}
           {isTut&&<Nav tab="" onTab={()=>{}} hl={null} disabled/>}
@@ -1190,8 +1207,8 @@ export default function App(){
                 {/* Toast banner */}
                 {pop&&toast&&(
                   <div className="toast-in" style={{position:"fixed",bottom:32,left:32,zIndex:100,display:"flex",alignItems:"center",gap:14,padding:"14px 24px",borderRadius:16,backgroundColor:"#EDF5FF",border:"3px solid #0077FF",boxShadow:"0 4px 0 0 #0077FF",minWidth:280,maxWidth:420}}>
-                    <div style={{width:48,height:48,borderRadius:12,backgroundColor:"#F0F4FF",display:"flex",alignItems:"center",justifyContent:"center",flexShrink:0}}>
-                      <img src={toast.icon} alt="" width={32} height={32} style={{objectFit:"contain"}}/>
+                    <div style={{width:56,height:56,borderRadius:14,backgroundColor:"#F0F4FF",display:"flex",alignItems:"center",justifyContent:"center",flexShrink:0}}>
+                      <img src={toast.icon} alt="" width={44} height={44} style={{objectFit:"contain"}}/>
                     </div>
                     <div>
                       <div style={{fontSize:15,fontWeight:700,color:"#1a1a1a"}}>{toast.title}</div>
