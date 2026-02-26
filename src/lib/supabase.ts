@@ -56,6 +56,7 @@ export interface Pet {
   last_fed_at: string | null;
   last_watered_at: string | null;
   last_cleaned_at: string | null;
+  equipped_accessory: string | null;
 }
 
 export interface Goal {

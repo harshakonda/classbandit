@@ -142,7 +142,7 @@ export async function updatePetMood(classroomId: string, mood: string) {
   if (error) throw error;
 }
 
-export async function updatePet(classroomId: string, updates: {name?: string; pet_type?: string; mood?: string}) {
+export async function updatePet(classroomId: string, updates: {name?: string; pet_type?: string; mood?: string; equipped_accessory?: string | null}) {
   const { data, error } = await supabase
     .from('pets')
     .update({ ...updates, updated_at: new Date().toISOString() })
